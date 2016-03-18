@@ -1,0 +1,5 @@
+--- # SensorBee plug-in list
+plugins:
+- gopkg.in/sensorbee/opencv.v0/plugin
+- gopkg.in/sensorbee/pymlstate.v0/plugin
+- github.com/disktnk/sb_facedetect_demo/video_writer/plugin

@@ -1,0 +1,16 @@
+.DS_Store
+
+# sensorbee build file
+sensorbee_main.go
+sensorbee
+
+# python
+*.pyc
+
+# working directory
+/data
+/result
+
+# BQL files
+rectangle_mount.bql
+

@@ -1,0 +1,53 @@
+CREATE PAUSED SOURCE camera TYPE opencv_capture_from_uri WITH
+    uri="data/<video_file_name>",
+    frame_skip=0, next_frame_error=false
+;
+
+CREATE STATE face_detector TYPE opencv_cascade_classifier WITH
+    file="data/<classifier_model_file_name>"
+;
+
+CREATE STREAM detected AS SELECT RSTREAM
+    opencv_detect_multi_scale("face_detector", c:*) AS rects,
+    c:* AS raw_image
+    FROM camera [RANGE 1 TUPLES] AS c
+;
+
+-- draw rectangle and create AVI "detected.avi"
+CREATE SINK detected_avi TYPE sbfddemo_avi_writer WITH
+    file_name="result/detected", fps=30
+;
+CREATE STREAM detected_avi_images AS SELECT RSTREAM
+    opencv_draw_rects(d:raw_image, d:rects) AS img
+    FROM detected [RANGE 1 TUPLES] AS d
+;
+CREATE STREAM fmt_detected_avi_images AS SELECT RSTREAM
+    dai:img.format AS format,
+    dai:img.width AS width,
+    dai:img.height AS height,
+    dai:img.image AS image
+    FROM detected_avi_images [RANGE 1 TUPLES] AS dai
+;
+INSERT INTO detected_avi FROM fmt_detected_avi_images
+;
+
+-- mount PNG file at rects and create AVI "mounted.avi"
+CREATE STATE mount TYPE opencv_shared_image WITH
+    file="data/<mount_file_name>"
+;
+CREATE SINK mount_avi TYPE sbfddemo_avi_writer WITH
+    file_name="result/mounted", fps=30
+;
+CREATE STREAM mount_avi_images AS SELECT RSTREAM
+    opencv_mount_image("mount", d:raw_image, d:rects) AS img
+    FROM detected [RANGE 1 TUPLES] AS d
+;
+CREATE STREAM fmt_mount_avi_images AS SELECT RSTREAM
+    mai:img.format AS format,
+    mai:img.width AS width,
+    mai:img.height AS height,
+    mai:img.image AS image
+    FROM mount_avi_images [RANGE 1 TUPLES] AS mai
+;
+INSERT INTO mount_avi FROM fmt_mount_avi_images
+;
